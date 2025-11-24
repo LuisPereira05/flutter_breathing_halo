@@ -24,10 +24,10 @@ class WatchBreathingHaloApp extends StatelessWidget {
               showTimer: true,
             ),
             onCalmStateAchieved: () {
-              debugPrint('✨ User achieved calm state!');
+              debugPrint('User achieved calm state!');
             },
             onHeartRateChanged: (hr) {
-              debugPrint('💓 Heart rate: $hr bpm');
+              debugPrint('Heart rate: $hr bpm');
             },
           ),
         ),
