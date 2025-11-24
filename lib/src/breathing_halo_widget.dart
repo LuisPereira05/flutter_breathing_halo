@@ -8,19 +8,19 @@ import 'heart_rate_service.dart';
 class BreathingHalo extends StatefulWidget {
   /// Configuration for the breathing halo
   final BreathingConfig config;
-  
+
   /// Callback when heart rate changes
   final Function(int heartRate)? onHeartRateChanged;
-  
+
   /// Callback when calm state is achieved
   final VoidCallback? onCalmStateAchieved;
-  
+
   /// Callback when breathing session starts
   final VoidCallback? onSessionStart;
-  
+
   /// Callback when breathing session stops
   final VoidCallback? onSessionStop;
-  
+
   /// Optional custom heart rate service
   final HeartRateService? heartRateService;
 
@@ -66,16 +66,16 @@ class _BreathingHaloState extends State<BreathingHalo>
   @override
   void initState() {
     super.initState();
-    
+
     _initialHeartRate = widget.config.initialHeartRate ?? 75;
     _currentHeartRate = _initialHeartRate;
 
     // Initialize heart rate service (defaults to simulated)
-    _heartRateService = widget.heartRateService ?? 
-      SimulatedHeartRateService(
-        initialHeartRate: _initialHeartRate,
-        enableVariation: true,
-      );
+    _heartRateService = widget.heartRateService ??
+        SimulatedHeartRateService(
+          initialHeartRate: _initialHeartRate,
+          enableVariation: true,
+        );
 
     // Breath animation controller
     _breathController = AnimationController(
@@ -114,7 +114,8 @@ class _BreathingHaloState extends State<BreathingHalo>
           // Check calm state
           if (_isBreathing &&
               _sessionSeconds >= widget.config.calmCheckDelay &&
-              (_initialHeartRate - _currentHeartRate) >= widget.config.calmThreshold &&
+              (_initialHeartRate - _currentHeartRate) >=
+                  widget.config.calmThreshold &&
               !_isCalm) {
             _isCalm = true;
             _colorController.forward();
@@ -145,7 +146,7 @@ class _BreathingHaloState extends State<BreathingHalo>
     _colorController.reverse();
     _startBreathCycle();
     _startSessionTimer();
-    
+
     await _heartRateService.startMonitoring();
     widget.onSessionStart?.call();
   }
@@ -156,7 +157,7 @@ class _BreathingHaloState extends State<BreathingHalo>
     _phaseTimer?.cancel();
     _sessionTimer?.cancel();
     _breathController.stop();
-    
+
     await _heartRateService.stopMonitoring();
     widget.onSessionStop?.call();
   }
@@ -211,11 +212,11 @@ class _BreathingHaloState extends State<BreathingHalo>
     _phaseTimer?.cancel();
     _sessionTimer?.cancel();
     _heartRateSubscription?.cancel();
-    
+
     if (widget.heartRateService == null) {
       _heartRateService.dispose();
     }
-    
+
     super.dispose();
   }
 
@@ -261,17 +262,19 @@ class _BreathingHaloState extends State<BreathingHalo>
                             ? 0.6
                             : 1.0,
                         child: Container(
-                          width: widget.config.size * 0.8,
-                          height: widget.config.size * 0.8,
+                          width: widget.config.size * 0.65,
+                          height: widget.config.size * 0.65,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: _colorAnimation.value ?? widget.config.normalColor,
+                              color: _colorAnimation.value ??
+                                  widget.config.normalColor,
                               width: 4,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: (_colorAnimation.value ?? widget.config.normalColor)
+                                color: (_colorAnimation.value ??
+                                        widget.config.normalColor)
                                     .withOpacity(0.6),
                                 blurRadius: 60,
                                 spreadRadius: 10,
@@ -279,9 +282,11 @@ class _BreathingHaloState extends State<BreathingHalo>
                             ],
                             gradient: RadialGradient(
                               colors: [
-                                (_colorAnimation.value ?? widget.config.normalColor)
+                                (_colorAnimation.value ??
+                                        widget.config.normalColor)
                                     .withOpacity(0.2),
-                                (_colorAnimation.value ?? widget.config.normalColor)
+                                (_colorAnimation.value ??
+                                        widget.config.normalColor)
                                     .withOpacity(0.05),
                               ],
                             ),
@@ -344,7 +349,7 @@ class _BreathingHaloState extends State<BreathingHalo>
             // Control button
             if (!widget.config.hideButton)
               Positioned(
-                bottom: 40,
+                bottom: 5,
                 child: _buildControlButton(),
               ),
           ],
@@ -440,7 +445,7 @@ class _BreathingHaloState extends State<BreathingHalo>
       style: ElevatedButton.styleFrom(
         backgroundColor: _isBreathing ? Colors.red : Colors.cyan,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
         ),
@@ -450,7 +455,7 @@ class _BreathingHaloState extends State<BreathingHalo>
             ? (widget.config.useEnglish ? 'Stop' : 'Parar')
             : (widget.config.useEnglish ? 'Start' : 'Iniciar'),
         style: const TextStyle(
-          fontSize: 16,
+          fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
       ),
