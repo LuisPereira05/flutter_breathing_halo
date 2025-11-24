@@ -70,14 +70,12 @@ class _BreathingHaloState extends State<BreathingHalo>
     _initialHeartRate = widget.config.initialHeartRate ?? 75;
     _currentHeartRate = _initialHeartRate;
 
-    // Initialize heart rate service (defaults to simulated)
     _heartRateService = widget.heartRateService ??
         SimulatedHeartRateService(
           initialHeartRate: _initialHeartRate,
           enableVariation: true,
         );
 
-    // Breath animation controller
     _breathController = AnimationController(
       vsync: this,
       duration: widget.config.breathDuration,
@@ -93,7 +91,6 @@ class _BreathingHaloState extends State<BreathingHalo>
       ),
     );
 
-    // Color transition controller
     _colorController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -104,14 +101,12 @@ class _BreathingHaloState extends State<BreathingHalo>
       end: widget.config.calmColor,
     ).animate(_colorController);
 
-    // Listen to heart rate changes
     _heartRateSubscription = _heartRateService.heartRateStream.listen(
       (hr) {
         if (!mounted) return;
         setState(() {
           _currentHeartRate = hr;
 
-          // Check calm state
           if (_isBreathing &&
               _sessionSeconds >= widget.config.calmCheckDelay &&
               (_initialHeartRate - _currentHeartRate) >=
@@ -233,7 +228,7 @@ class _BreathingHaloState extends State<BreathingHalo>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Animated background
+
             AnimatedContainer(
               duration: const Duration(milliseconds: 3000),
               decoration: BoxDecoration(
@@ -247,7 +242,6 @@ class _BreathingHaloState extends State<BreathingHalo>
               ),
             ),
 
-            // Animated breathing halo
             AnimatedBuilder(
               animation: _breathController,
               builder: (context, child) {
@@ -299,7 +293,6 @@ class _BreathingHaloState extends State<BreathingHalo>
               },
             ),
 
-            // Center instruction
             if (_isBreathing)
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -323,7 +316,6 @@ class _BreathingHaloState extends State<BreathingHalo>
                 ],
               ),
 
-            // Heart rate display
             if (widget.config.showHeartRate)
               Positioned(
                 top: 20,
@@ -331,7 +323,6 @@ class _BreathingHaloState extends State<BreathingHalo>
                 child: _buildHeartRateDisplay(),
               ),
 
-            // Timer display
             if (widget.config.showTimer && _isBreathing)
               Positioned(
                 top: 20,
@@ -339,14 +330,12 @@ class _BreathingHaloState extends State<BreathingHalo>
                 child: _buildTimerDisplay(),
               ),
 
-            // Calm indicator
             if (_isCalm)
               Positioned(
                 top: 70,
                 child: _buildCalmIndicator(),
               ),
 
-            // Control button
             if (!widget.config.hideButton)
               Positioned(
                 bottom: 5,
