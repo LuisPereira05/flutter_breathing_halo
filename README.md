@@ -1,39 +1,113 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# BreathingHalo
+### Luis Felipe Castillo Pereira, Matías Andrés Ramírez Porto.
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+Um widget de respiração guiada inteligente para Flutter, com monitoramento de frequência cardíaca e efeitos visuais relaxantes. Ideal para meditação, relaxamento ou pausas de respiração.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+![BreathingHalo](testeGif.gif)
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+---
 
-## Features
+📦 Descrição
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+O `BreathingHalo` permite criar sessões de respiração guiada com animações suaves e feedback visual de calma, além de monitorar a frequência cardíaca em tempo real. Ele inclui:
 
-## Getting started
+- Ciclos de respiração (inspirar, segurar, expirar, segurar).
+- Mudança de cores para indicar estado calmo.
+- Monitoramento de frequência cardíaca (simulado ou real via serviço personalizado).
+- Temporizador e indicadores visuais.
+- Personalização completa via `BreathingConfig`.
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+---
 
-## Usage
+⚙️ Instalação
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+Adicione o pacote no `pubspec.yaml` do seu projeto Flutter usando Git:
 
-```dart
-const like = 'sample';
+```
+dependencies:
+  flutter:
+    sdk: flutter
+  breathing_halo:
+    git:
+      url: https://github.com/LuisPereira05/flutter_breathing_halo
+      ref: main  # ou uma branch/tag específica
+```
+Depois, rode:
+
+```
+flutter pub get
 ```
 
-## Additional information
+> O `ref` pode ser uma branch, tag ou commit específico. Se não informado, será usada a branch `main`.
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+---
+
+🛠️ Uso
+
+Importe o widget no seu código:
+
+```
+import 'package:breathing_halo/breathing_halo.dart';
+```
+
+Exemplo de uso:
+
+```
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: BreathingHalo(
+          config: BreathingConfig(
+            size: 250,
+            autoStart: true,
+            showHeartRate: true,
+            calmThreshold: 5,
+            calmCheckDelay: 10,
+            normalColor: Colors.blue,
+            calmColor: Colors.green,
+            normalBackground: [Colors.blue, Colors.purple],
+            calmBackground: [Colors.green, Colors.teal],
+          ),
+          onHeartRateChanged: (hr) {
+            print("Frequência cardíaca: $hr bpm");
+          },
+          onCalmStateAchieved: () {
+            print("Estado calmo alcançado!");
+          },
+        ),
+      ),
+    );
+  }
+}
+```
+---
+
+🔧 Configuração
+
+`BreathingConfig` permite ajustar:
+
+- `size` → Tamanho do halo.
+- `autoStart` → Iniciar automaticamente.
+- `showHeartRate` → Exibir frequência cardíaca.
+- `hideButton` → Esconder botão de controle.
+- `calmThreshold` → Queda de bpm para atingir estado calmo.
+- `calmCheckDelay` → Tempo mínimo antes de verificar estado calmo.
+- `normalColor` / `calmColor` → Cores do halo.
+- `normalBackground` / `calmBackground` → Gradientes de fundo.
+- `minScale` / `maxScale` → Escala da animação de respiração.
+- `breathDuration` → Duração de cada fase do ciclo de respiração.
+- `useEnglish` → Mostrar instruções em inglês.
+
+---
+
+
+📄 Callbacks disponíveis
+
+- `onHeartRateChanged(int hr)` → Chamado a cada mudança de bpm.
+- `onCalmStateAchieved()` → Chamado quando o usuário atinge estado calmo.
+- `onSessionStart()` → Chamado ao iniciar a sessão.
+- `onSessionStop()` → Chamado ao parar a sessão.
+
