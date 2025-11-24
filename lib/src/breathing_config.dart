@@ -44,13 +44,11 @@ class BreathingConfig {
   /// Show session timer
   final bool showTimer;
 
+  /// Hide start/stop button (tap anywhere to control instead)
   final bool hideButton;
   
   /// Use English instructions instead of Portuguese
   final bool useEnglish;
-  
-  /// Use real heart rate sensor (if available) instead of simulation
-  final bool useRealHeartRateSensor;
 
   const BreathingConfig({
     this.size = 200.0,
@@ -76,7 +74,6 @@ class BreathingConfig {
     this.showTimer = true,
     this.hideButton = false,
     this.useEnglish = false,
-    this.useRealHeartRateSensor = true,
   });
 
   /// Create a copy with modified values
@@ -97,7 +94,6 @@ class BreathingConfig {
     bool? showTimer,
     bool? hideButton,
     bool? useEnglish,
-    bool? useRealHeartRateSensor,
   }) {
     return BreathingConfig(
       size: size ?? this.size,
@@ -116,7 +112,6 @@ class BreathingConfig {
       showTimer: showTimer ?? this.showTimer,
       hideButton: hideButton ?? this.hideButton,
       useEnglish: useEnglish ?? this.useEnglish,
-      useRealHeartRateSensor: useRealHeartRateSensor ?? this.useRealHeartRateSensor,
     );
   }
   

@@ -3,8 +3,6 @@ import 'dart:async';
 import 'breath_phase.dart';
 import 'breathing_config.dart';
 import 'heart_rate_service.dart';
-import 'wearos_heart_rate_service.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 
 /// A smart guided breathing widget with heart rate monitoring
 class BreathingHalo extends StatefulWidget {
@@ -57,10 +55,9 @@ class _BreathingHaloState extends State<BreathingHalo>
   Timer? _phaseTimer;
   Timer? _sessionTimer;
   StreamSubscription<int>? _heartRateSubscription;
-  HeartRateService? _heartRateService;
-  bool _isInitializingService = false;
+  late HeartRateService _heartRateService;
 
-  // --- Public getters for tests / external inspection ---
+  // Public getters for tests
   bool get isBreathing => _isBreathing;
   bool get isCalm => _isCalm;
   int get sessionSeconds => _sessionSeconds;
@@ -72,6 +69,13 @@ class _BreathingHaloState extends State<BreathingHalo>
     
     _initialHeartRate = widget.config.initialHeartRate ?? 75;
     _currentHeartRate = _initialHeartRate;
+
+    // Initialize heart rate service (defaults to simulated)
+    _heartRateService = widget.heartRateService ?? 
+      SimulatedHeartRateService(
+        initialHeartRate: _initialHeartRate,
+        enableVariation: true,
+      );
 
     // Breath animation controller
     _breathController = AnimationController(
@@ -100,8 +104,27 @@ class _BreathingHaloState extends State<BreathingHalo>
       end: widget.config.calmColor,
     ).animate(_colorController);
 
-    // Initialize heart rate service (async, may complete later)
-    _initializeHeartRateService();
+    // Listen to heart rate changes
+    _heartRateSubscription = _heartRateService.heartRateStream.listen(
+      (hr) {
+        if (!mounted) return;
+        setState(() {
+          _currentHeartRate = hr;
+
+          // Check calm state
+          if (_isBreathing &&
+              _sessionSeconds >= widget.config.calmCheckDelay &&
+              (_initialHeartRate - _currentHeartRate) >= widget.config.calmThreshold &&
+              !_isCalm) {
+            _isCalm = true;
+            _colorController.forward();
+            widget.onCalmStateAchieved?.call();
+          }
+        });
+
+        widget.onHeartRateChanged?.call(hr);
+      },
+    );
 
     if (widget.config.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -110,121 +133,8 @@ class _BreathingHaloState extends State<BreathingHalo>
     }
   }
 
-  Future<void> _initializeHeartRateService() async {
-    if (_isInitializingService) return;
-    _isInitializingService = true;
-
-    try {
-      // Use provided service or create one
-      if (widget.heartRateService != null) {
-        _heartRateService = widget.heartRateService;
-      } else {
-        _heartRateService = await _createHeartRateService();
-      }
-
-      // If service exposes a currentHeartRate, pick it up immediately so initial HR is correct
-      try {
-        final int hrFromService = _heartRateService?.currentHeartRate ?? _currentHeartRate;
-        // Update current heart rate quickly if service provided an initial value
-        if (hrFromService != _currentHeartRate) {
-          setState(() {
-            _currentHeartRate = hrFromService;
-            // We do not change _initialHeartRate here; startBreathing will set it when session starts
-          });
-        }
-      } catch (_) {
-        // ignore if getter not implemented or throws
-      }
-      
-      // Listen to heart rate stream (always listen if we have a service)
-      _heartRateSubscription = _heartRateService?.heartRateStream.listen(
-        (hr) {
-          if (!mounted) return;
-          // Update state and evaluate calm detection
-          setState(() {
-            _currentHeartRate = hr;
-
-            // Check calm state only when breathing
-            if (_isBreathing &&
-                _sessionSeconds >= widget.config.calmCheckDelay &&
-                (_initialHeartRate - _currentHeartRate) >= widget.config.calmThreshold &&
-                !_isCalm) {
-              _isCalm = true;
-              _colorController.forward();
-              widget.onCalmStateAchieved?.call();
-            }
-          });
-
-          widget.onHeartRateChanged?.call(hr);
-        },
-        onError: (error) {
-          debugPrint('❌ Heart rate error: $error');
-        },
-      );
-      
-      debugPrint('✅ Heart rate service initialized');
-    } catch (e) {
-      debugPrint('❌ Failed to initialize heart rate service: $e');
-      // fallback: ensure we have a simulated service if possible
-      if (_heartRateService == null) {
-        _heartRateService = SimulatedHeartRateService(
-          initialHeartRate: _initialHeartRate,
-          enableVariation: true,
-        );
-        // attach listener to simulated service if needed
-        _heartRateSubscription = _heartRateService?.heartRateStream.listen(
-          (hr) {
-            if (!mounted) return;
-            setState(() => _currentHeartRate = hr);
-            widget.onHeartRateChanged?.call(hr);
-          },
-        );
-      }
-    } finally {
-      _isInitializingService = false;
-    }
-  }
-
-  Future<HeartRateService> _createHeartRateService() async {
-    if (widget.config.useRealHeartRateSensor) {
-      // Try WearOS sensor first
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        try {
-          final wearOSService = WearOSHeartRateService();
-          final available = await wearOSService.isAvailable();
-          
-          if (available) {
-            debugPrint('✅ Using WearOS heart rate sensor');
-            return wearOSService;
-          } else {
-            debugPrint('⚠️ WearOS sensor not available');
-          }
-        } catch (e) {
-          debugPrint('⚠️ WearOS sensor error: $e');
-        }
-      }
-    }
-    
-    // Fallback to simulation
-    debugPrint('⚠️ Using simulated heart rate sensor');
-    return SimulatedHeartRateService(
-      initialHeartRate: _initialHeartRate,
-      enableVariation: true,
-    );
-  }
-
   /// Start the breathing session
   Future<void> startBreathing() async {
-    // Ensure HR service ready before starting so initial HR is accurate
-    if (_heartRateService == null && !_isInitializingService) {
-      await _initializeHeartRateService();
-    } else if (_isInitializingService) {
-      // Wait for initialization if still in progress
-      while (_isInitializingService) {
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      }
-    }
-
     setState(() {
       _isBreathing = true;
       _initialHeartRate = _currentHeartRate;
@@ -236,20 +146,7 @@ class _BreathingHaloState extends State<BreathingHalo>
     _startBreathCycle();
     _startSessionTimer();
     
-    // Start heart rate monitoring
-    if (_heartRateService != null) {
-      try {
-        final started = await _heartRateService!.startMonitoring();
-        if (started) {
-          debugPrint('✅ Heart rate monitoring started');
-        } else {
-          debugPrint('⚠️ Failed to start heart rate monitoring');
-        }
-      } catch (e) {
-        debugPrint('⚠️ Exception starting heart rate monitoring: $e');
-      }
-    }
-    
+    await _heartRateService.startMonitoring();
     widget.onSessionStart?.call();
   }
 
@@ -260,16 +157,7 @@ class _BreathingHaloState extends State<BreathingHalo>
     _sessionTimer?.cancel();
     _breathController.stop();
     
-    // Stop heart rate monitoring
-    if (_heartRateService != null) {
-      try {
-        await _heartRateService!.stopMonitoring();
-        debugPrint('⏹️ Heart rate monitoring stopped');
-      } catch (e) {
-        debugPrint('⚠️ Error stopping heart rate monitoring: $e');
-      }
-    }
-    
+    await _heartRateService.stopMonitoring();
     widget.onSessionStop?.call();
   }
 
@@ -324,11 +212,8 @@ class _BreathingHaloState extends State<BreathingHalo>
     _sessionTimer?.cancel();
     _heartRateSubscription?.cancel();
     
-    // Cleanup heart rate service if we created it
-    if (widget.heartRateService == null && _heartRateService != null) {
-      try {
-        _heartRateService!.dispose();
-      } catch (_) {}
+    if (widget.heartRateService == null) {
+      _heartRateService.dispose();
     }
     
     super.dispose();
